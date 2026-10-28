@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STATELESS // STORE</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #0b0b0f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        h1.brand-title {
+            font-size: 3rem;
+            letter-spacing: 12px;
+            text-transform: uppercase;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        p.subtitle {
+            color: #666;
+            letter-spacing: 3px;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .product-card {
+            background: #12121a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .product-image {
+            width: 100%;
+            height: 260px;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #1a1a24;
+            margin-bottom: 15px;
+        }
+        .product-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .product-price {
+            color: #00ffcc;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 class="brand-title">STATELESS</h1>
+        <p class="subtitle">CYBERPUNK & TECHWEAR APPAREL</p>
+    </header>
+
+    <main class="catalog-grid" id="catalog-container">
+        <!-- Los productos se cargarán dinámicamente desde la API de Django -->
+    </main>
+
+    <script>
+        // Cargar productos desde la API REST de Django
+        fetch('http://127.0.0.1:8000/api/products/')
+            .then(response => response.json())
+            .then(products => {
+                const container = document.getElementById('catalog-container');
+                container.innerHTML = '';
+
+                if (products.length === 0) {
+                    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #666;">No hay prendas disponibles en la tienda.</p>';
+                    return;
+                }
+
+                products.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    
+                    // Al hacer clic, abre el detalle del producto en una nueva pestaña
+                    card.onclick = () => {
+                        window.open(`product-detail.html?id=${product.id}`, '_blank');
+                    };
+
+                    const imageUrl = product.image ? product.image : 'https://via.placeholder.com/300x300?text=STATELESS';
+
+                    card.innerHTML = `
+                        <div>
+                            <img src="${imageUrl}" alt="${product.name}" class="product-image">
+                            <h2 class="product-title">${product.name}</h2>
+                        </div>
+                        <div class="product-price">$${product.price}</div>
+                    `;
+
+                    container.appendChild(card);
+                });
+            })
+            .catch(error => {
+                console.error('Error al cargar prendas:', error);
+            });
+    </script>
+</body>
+</html>

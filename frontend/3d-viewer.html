@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STATELESS // VIRTUAL FITTING ROOM 3D</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            margin: 0;
+            background-color: #0b0b0f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(18, 18, 26, 0.85);
+            padding: 20px 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            width: 320px;
+        }
+        .brand {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: #00ffcc;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: block;
+        }
+        h1 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        .status {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 15px;
+        }
+        .control-group {
+            margin-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 12px;
+        }
+        .control-group label {
+            font-size: 0.85rem;
+            color: #ccc;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: #00ffcc;
+            cursor: pointer;
+        }
+        .controls-hint {
+            font-size: 0.75rem;
+            color: #777;
+            margin-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 8px;
+        }
+        .loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0b0b0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 204, 0.1);
+            border-top: 3px solid #00ffcc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="loading-screen" id="loading">
+        <div class="spinner"></div>
+        <p style="letter-spacing: 2px; font-size: 0.9rem;">CARGANDO PROBADOR VIRTUAL...</p>
+    </div>
+
+    <div class="ui-overlay">
+        <span class="brand">STATELESS // FIT LAB</span>
+        <h1 id="product-name">Cargando prenda...</h1>
+        <p class="status" id="product-price">--</p>
+        
+        <div class="control-group">
+            <label for="width-slider">Ajuste de Ancho (Talla 3D): <span id="width-val">1.0x</span></label>
+            <input type="range" id="width-slider" min="0.2" max="0.5" step="0.01" value="0.3">
+        </div>
+
+        <div class="controls-hint">
+            🖱️ Click izq + Arrastrar: Rotar avatar<br>
+            🔍 Rueda del mouse: Zoom
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0b0b0f');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.4, 3.2);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 1, 0);
+
+        // Iluminación
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+        scene.add(ambientLight);
+
+        const keyLight = new THREE.DirectionalLight(0x00ffcc, 2.0);
+        keyLight.position.set(3, 5, 3);
+        scene.add(keyLight);
+
+        const fillLight = new THREE.DirectionalLight(0xff00ff, 1.5);
+        fillLight.position.set(-3, 3, -2);
+        scene.add(fillLight);
+
+        let loadedItem = null; // Variable global para manipular la prenda 3D
+        const loader = new GLTFLoader();
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+
+        const AVATAR_URL = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+
+        // Cargar Avatar
+        loader.load(AVATAR_URL, (gltf) => {
+            const avatar = gltf.scene;
+            avatar.position.set(0, 0, 0);
+            scene.add(avatar);
+
+            if (productId) {
+                fetch(`http://127.0.0.1:8000/api/products/${productId}/`)
+                    .then(res => res.json())
+                    .then(product => {
+                        document.getElementById('product-name').innerText = product.name;
+                        document.getElementById('product-price').innerText = `$${product.price}`;
+
+                        if (product.model_3d) {
+                            loader.load(product.model_3d, (itemGltf) => {
+                                loadedItem = itemGltf.scene;
+                                loadedItem.scale.set(0.3, 0.3, 0.3); // Escala inicial por defecto
+                                loadedItem.position.set(0, 0, 0);
+                                scene.add(loadedItem);
+                                hideLoading();
+                            }, undefined, (err) => {
+                                console.error("Error al cargar modelo de la prenda:", err);
+                                hideLoading();
+                            });
+                        } else {
+                            hideLoading();
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error consultando la API:", err);
+                        hideLoading();
+                    });
+            } else {
+                hideLoading();
+            }
+        });
+
+        // Evento para el deslizador de ancho/talla en tiempo real
+        const widthSlider = document.getElementById('width-slider');
+        const widthValText = document.getElementById('width-val');
+
+        widthSlider.addEventListener('input', (e) => {
+            const scaleVal = parseFloat(e.target.value);
+            widthValText.innerText = scaleVal.toFixed(2) + 'x';
+
+            if (loadedItem) {
+                // Modificamos el ancho (eje X y Z) para simular ajuste de talla/volumen
+                loadedItem.scale.set(scaleVal, scaleVal, scaleVal);
+            }
+        });
+
+        function hideLoading() {
+            const loading = document.getElementById('loading');
+            loading.style.opacity = '0';
+            setTimeout(() => loading.style.display = 'none', 500);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
