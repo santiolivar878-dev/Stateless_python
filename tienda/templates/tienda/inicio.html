@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>STATELESS - Inicio</title>
+</head>
+<body style="background-color: #0b0b0b; color: #ffffff; font-family: sans-serif; padding: 20px;">
+
+    <h1>STATELESS</h1>
+    <p>Catálogo de Ropa</p>
+    <hr style="border-color: #333;">
+
+    <h2>Prendas Disponibles:</h2>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        {% for prenda in prendas %}
+            <div style="border: 1px solid #333; padding: 15px; width: 220px; background: #141414; border-radius: 8px;">
+                <h3>{{ prenda.nombre }}</h3>
+                <p>Categoría: <strong>{{ prenda.categoria.nombre }}</strong></p>
+                <p>Precio: <strong>${{ prenda.precio }} COP</strong></p>
+                <p>Color: {{ prenda.color_nombre }}</p>
+                
+                <a href="{% url 'detalle_prenda' prenda.slug %}" style="color: #61afef; text-decoration: none; font-weight: bold;">
+                    Ver Producto &rarr;
+                </a>
+            </div>
+        {% empty %}
+            <p>No hay prendas registradas aún. Agrégalas desde el admin.</p>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
