@@ -1,0 +1,312 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Probador 3D - STATELESS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0b0b0b;
+            color: #ffffff;
+            font-family: sans-serif;
+        }
+        #canvas3d {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .panel-control {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(18, 18, 18, 0.92);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 18px;
+            width: 290px;
+            backdrop-filter: blur(8px);
+            z-index: 10;
+        }
+        .btn-volver {
+            color: #888;
+            text-decoration: none;
+            font-size: 12px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .slider-box {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #282828;
+        }
+        input[type=range] {
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn-accion {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-accion:hover {
+            background: #333;
+            border-color: #fff;
+        }
+        #cargando {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            color: #aaa;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cargando">Cargando maniquí y prenda real 3D...</div>
+
+    <div class="panel-control">
+        <a href="javascript:history.back()" class="btn-volver">&larr; Volver al Producto</a>
+        
+        <h3 style="margin: 0; font-size: 16px; letter-spacing: 1px;">STATELESS 3D</h3>
+        
+        {% if prenda %}
+            <p style="margin: 6px 0 0; font-size: 13px; color: #fff;">
+                Prenda: <strong>{{ prenda.nombre }}</strong>
+            </p>
+            <p style="margin: 2px 0 0; font-size: 11px; color: #888;">
+                {{ prenda.categoria.nombre }} • Color: {{ prenda.color_nombre }}
+            </p>
+        {% endif %}
+
+        <!-- Slider de Altura -->
+        <div class="slider-box">
+            <label style="font-size: 12px; color: #ccc; display: flex; justify-content: space-between;">
+                <span>Estatura del Maniquí:</span>
+                <strong id="labelAltura">{{ altura_inicial }} cm</strong>
+            </label>
+            <input type="range" id="sliderAltura" min="150" max="205" value="{{ altura_inicial }}" step="1">
+            <span style="font-size: 10px; color: #666;">El maniquí y la prenda se ajustan a tu altura</span>
+        </div>
+
+        <button id="btnToggleRopa" class="btn-accion">Ocultar Prenda</button>
+        <button id="btnToggleBrazos" class="btn-accion" style="margin-top: 6px;">Ocultar Brazos Maniquí</button>
+    </div>
+
+    <div id="canvas3d"></div>
+
+    <script>
+        let alturaActual = parseFloat("{{ altura_inicial }}") || 175;
+        let modeloManiqui = null;
+        let modeloCamisa = null;
+        let escalaBase = 1.0;
+        let escalaCamisaBase = 1.0;
+        let posicionYCamisaBase = 0;
+        let prendaPuesta = true;
+        let brazosVisibles = true;
+
+        // 1. Escena y Cámara
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0e0e0e);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.35, 3.0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.3;
+        renderer.shadowMap.enabled = true;
+        document.getElementById('canvas3d').appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 1.0, 0);
+        controls.enableDamping = true;
+        controls.minDistance = 1.0;
+        controls.maxDistance = 4.5;
+
+        // 2. Luces
+        const luzFrontal = new THREE.DirectionalLight(0xffffff, 2.2);
+        luzFrontal.position.set(2, 4, 3);
+        scene.add(luzFrontal);
+
+        const luzTrasera = new THREE.DirectionalLight(0x8899aa, 1.4);
+        luzTrasera.position.set(-2, 3, -3);
+        scene.add(luzTrasera);
+
+        const luzAmbiente = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(luzAmbiente);
+
+        // Suelo
+        const sueloGeo = new THREE.CylinderGeometry(1.3, 1.3, 0.04, 32);
+        const sueloMat = new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.7 });
+        const suelo = new THREE.Mesh(sueloGeo, sueloMat);
+        suelo.position.y = -0.02;
+        scene.add(suelo);
+
+        const loader = new THREE.GLTFLoader();
+        const urlManiqui = "{% static 'modelos/Xbot.glb' %}";
+        const urlCamisa = "{% static 'modelos/camisa-polo-fuenza_blanca.glb' %}";
+
+        // 3. Cargar el Maniquí Xbot
+        loader.load(urlManiqui, function(gltfManiqui) {
+            modeloManiqui = gltfManiqui.scene;
+
+            // Escala para 1.75 m
+            const boxM = new THREE.Box3().setFromObject(modeloManiqui);
+            const sizeM = boxM.getSize(new THREE.Vector3());
+            const centerM = boxM.getCenter(new THREE.Vector3());
+
+            escalaBase = 1.75 / sizeM.y;
+            modeloManiqui.scale.set(escalaBase, escalaBase, escalaBase);
+
+            const boxAjustada = new THREE.Box3().setFromObject(modeloManiqui);
+            modeloManiqui.position.y = -boxAjustada.min.y;
+            modeloManiqui.position.x = -centerM.x * escalaBase;
+            modeloManiqui.position.z = -centerM.z * escalaBase;
+
+            // Color del cuerpo
+            modeloManiqui.traverse((child) => {
+                if (child.isMesh) {
+                    child.material = new THREE.MeshStandardMaterial({
+                        color: 0x222222,
+                        roughness: 0.45,
+                        metalness: 0.1
+                    });
+                }
+            });
+
+            // === DEFORMACIÓN DE BRAZOS SEGURA ===
+            // Buscamos e imprimimos en consola
+            console.log("--- BUSCANDO HUESOS DE XBOT ---");
+            modeloManiqui.traverse((child) => {
+                if (child.isBone) {
+                    const n = child.name.toLowerCase();
+                    console.log("Hueso:", child.name);
+                    if (n.includes('leftarm') || n.includes('arm_l') || n.includes('shoulder_l')) {
+                        child.rotation.z = -1.2;
+                        child.updateMatrixWorld(true);
+                    }
+                    if (n.includes('rightarm') || n.includes('arm_r') || n.includes('shoulder_r')) {
+                        child.rotation.z = 1.2;
+                        child.updateMatrixWorld(true);
+                    }
+                }
+            });
+
+            scene.add(modeloManiqui);
+
+            // 4. Cargar la Camisa
+            loader.load(urlCamisa, function(gltfCamisa) {
+                modeloCamisa = gltfCamisa.scene;
+
+                const boxC = new THREE.Box3().setFromObject(modeloCamisa);
+                const sizeC = boxC.getSize(new THREE.Vector3());
+                const centerC = boxC.getCenter(new THREE.Vector3());
+
+                escalaCamisaBase = 0.70 / sizeC.x;
+                
+                // Volumen para cubrir la espalda
+                modeloCamisa.scale.set(
+                    escalaCamisaBase, 
+                    escalaCamisaBase, 
+                    escalaCamisaBase * 1.15
+                );
+
+                modeloCamisa.position.x = -centerC.x * escalaCamisaBase;
+                modeloCamisa.position.z = (-centerC.z * escalaCamisaBase) + 0.045;
+
+                const boxEscalada = new THREE.Box3().setFromObject(modeloCamisa);
+                posicionYCamisaBase = 1.53 - boxEscalada.max.y;
+                modeloCamisa.position.y = posicionYCamisaBase;
+
+                scene.add(modeloCamisa);
+
+                actualizarAltura(alturaActual);
+                document.getElementById('cargando').style.display = 'none';
+
+            }, undefined, function(err) {
+                console.error('Error cargando camisa:', err);
+                document.getElementById('cargando').style.display = 'none';
+            });
+
+        }, undefined, function(err) {
+            console.error('Error cargando Xbot:', err);
+            document.getElementById('cargando').innerText = 'Error cargando Xbot.glb';
+        });
+
+        // 5. Escalar altura en tiempo real
+        function actualizarAltura(alturaCm) {
+            const factor = (alturaCm / 175);
+
+            if (modeloManiqui) {
+                modeloManiqui.scale.y = factor * escalaBase;
+            }
+
+            if (modeloCamisa) {
+                modeloCamisa.scale.y = factor * escalaCamisaBase;
+                modeloCamisa.position.y = posicionYCamisaBase + ((factor - 1) * 0.4);
+            }
+
+            document.getElementById('labelAltura').innerText = alturaCm + ' cm';
+        }
+
+        document.getElementById('sliderAltura').addEventListener('input', function(e) {
+            actualizarAltura(parseFloat(e.target.value));
+        });
+
+        // Alternar prenda
+        document.getElementById('btnToggleRopa').addEventListener('click', function() {
+            if (!modeloCamisa) return;
+            prendaPuesta = !prendaPuesta;
+            modeloCamisa.visible = prendaPuesta;
+            this.innerText = prendaPuesta ? 'Ocultar Prenda' : 'Mostrar Prenda';
+        });
+
+        // Alternar brazos del maniquí (Modo Maniquí de Escaparate)
+        document.getElementById('btnToggleBrazos').addEventListener('click', function() {
+            if (!modeloManiqui) return;
+            brazosVisibles = !brazosVisibles;
+            
+            modeloManiqui.traverse((child) => {
+                if (child.isBone && (child.name.toLowerCase().includes('arm') || child.name.toLowerCase().includes('hand'))) {
+                    child.scale.set(brazosVisibles ? 1 : 0.001, brazosVisibles ? 1 : 0.001, brazosVisibles ? 1 : 0.001);
+                }
+            });
+            this.innerText = brazosVisibles ? 'Ocultar Brazos Maniquí' : 'Mostrar Brazos Maniquí';
+        });
+
+        // 6. Bucle de renderizado
+        function animar() {
+            requestAnimationFrame(animar);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animar();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
