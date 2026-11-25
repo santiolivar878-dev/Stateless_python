@@ -45,9 +45,11 @@
         </button>
 
         <!-- Botón Probar en Maniquí 3D -->
-        <button id="btnProbar3D" style="margin-top: 10px; width: 100%; padding: 12px; background: transparent; color: #fff; border: 1px solid #555; cursor: pointer; border-radius: 4px;">
-            PROBAR EN MANIQUÍ 3D (360°)
-        </button>
+        <a id="btn-probador-3d"
+        href="/probador-3d/?prenda={{ prenda.nombre|slugify }}"
+        style="display:inline-block; margin-top:16px; padding:12px 22px; background:#fff; color:#000; text-decoration:none; font-weight:600; border-radius:6px;">
+        Probar en Modelo 3D &rarr;
+        </a>
     </div>
 
     <!-- JavaScript para hacer el cálculo sin recargar -->

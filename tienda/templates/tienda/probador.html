@@ -4,477 +4,594 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Probador 3D - STATELESS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
+    <title>STATELESS | Probador 3D</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: #0c0c0c;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0b0b0c;
+            color: #f4f4f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             overflow: hidden;
-            width: 100vw;
             height: 100vh;
+            width: 100vw;
         }
+        #canvas-container { position: fixed; inset: 0; z-index: 1; }
 
-        #canvas3d { width: 100%; height: 100%; display: block; }
-
-        .ui-panel {
-            position: absolute;
-            top: 24px;
-            left: 24px;
-            background: rgba(18, 18, 18, 0.88);
+        .panel-izq {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            bottom: 20px;
+            width: 340px;
+            background: rgba(18, 18, 20, 0.9);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 22px;
-            width: 320px;
+            border: 1px solid #27272a;
+            border-radius: 14px;
+            padding: 20px;
             z-index: 10;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
         }
-
-        .back-link {
-            color: #888;
+        .volver {
+            color: #a1a1aa;
             text-decoration: none;
             font-size: 0.85rem;
+        }
+        .volver:hover { color: #fff; }
+        .badge {
             display: inline-block;
-            margin-bottom: 12px;
-            transition: color 0.2s;
-        }
-        .back-link:hover { color: #fff; }
-
-        h1 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            letter-spacing: 1.5px;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            margin-bottom: 4px;
+            letter-spacing: 0.08em;
+            color: #d4d4d8;
+            border: 1px solid #3f3f46;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
         }
+        .prenda-actual h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; }
+        .prenda-meta { font-size: 0.85rem; color: #a1a1aa; }
 
-        .sub-prenda {
-            font-size: 0.85rem;
-            color: #aaa;
-            margin-bottom: 16px;
-        }
-
-        .calib-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 14px;
-        }
-
-        .calib-title {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: #4da3ff;
-            margin-bottom: 10px;
-        }
-
-        .slider-row {
+        .seccion-titulo {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #a1a1aa;
             margin-bottom: 8px;
         }
+        .tallas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .btn-talla {
+            background: #18181b;
+            border: 1px solid #27272a;
+            color: #e4e4e7;
+            padding: 9px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-talla.activo {
+            background: #ffffff;
+            color: #09090b;
+            border-color: #ffffff;
+        }
 
-        .slider-row label {
+        .sugerencias-lista { display: flex; flex-direction: column; gap: 8px; }
+        .sug-card {
+            background: #141417;
+            border: 1px solid #27272a;
+            border-radius: 10px;
+            padding: 10px 12px;
             display: flex;
             justify-content: space-between;
-            font-size: 0.75rem;
-            color: #aaa;
-            margin-bottom: 3px;
+            align-items: center;
+            gap: 10px;
         }
-
-        .slider-row input {
-            width: 100%;
-            accent-color: #0070f3;
-            cursor: pointer;
-        }
-
-        .btn-action {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+        .sug-card.equipada { border-color: #ffffff; background: #1c1c21; }
+        .sug-info h4 { font-size: 0.88rem; font-weight: 600; }
+        .sug-info span { font-size: 0.75rem; color: #a1a1aa; }
+        .btn-combinar {
+            background: #27272a;
             color: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.85rem;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .sug-card.equipada .btn-combinar { background: #fff; color: #000; font-weight: 600; }
+
+        #estado-carga {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(24, 24, 27, 0.9);
+            border: 1px solid #3f3f46;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            z-index: 20;
+            display: none;
+        }
+
+        /* Estilista IA */
+        .chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 25;
+            background: #ffffff;
+            color: #09090b;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 999px;
             font-weight: 600;
             cursor: pointer;
-            margin-bottom: 8px;
-            transition: all 0.2s;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
-        .btn-action:hover { background: rgba(255, 255, 255, 0.18); }
-
-        #cargando {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.9rem;
-            letter-spacing: 2px;
-            color: #777;
-            pointer-events: none;
-            transition: opacity 0.4s ease;
+        .chat-box {
+            position: fixed;
+            bottom: 76px;
+            right: 20px;
+            width: 360px;
+            max-height: 520px;
+            background: rgba(18, 18, 20, 0.96);
+            border: 1px solid #27272a;
+            border-radius: 14px;
+            display: none;
+            flex-direction: column;
+            z-index: 25;
+            overflow: hidden;
+        }
+        .chat-box.abierto { display: flex; }
+        .chat-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #27272a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+        .chat-msgs {
+            padding: 14px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 0.85rem;
+        }
+        .msg-user {
+            align-self: flex-end;
+            background: #27272a;
+            padding: 8px 12px;
+            border-radius: 10px;
+            max-width: 85%;
+        }
+        .msg-ia {
+            align-self: flex-start;
+            background: #141417;
+            border: 1px solid #27272a;
+            padding: 10px 12px;
+            border-radius: 10px;
+            max-width: 95%;
+        }
+        .ia-opcion {
+            margin-top: 8px;
+            padding: 8px;
+            background: #1c1c21;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+        }
+        .ia-opcion button {
+            margin-top: 6px;
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .chat-form {
+            padding: 10px;
+            border-top: 1px solid #27272a;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .chat-form input[type="text"] {
+            flex: 1;
+            background: #141417;
+            border: 1px solid #27272a;
+            color: #fff;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .chat-form button {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
         }
     </style>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
 </head>
 <body>
+    <div id="canvas-container"></div>
+    <div id="estado-carga">Cargando prenda 3D...</div>
 
-    <div class="ui-panel">
-        <a href="javascript:history.back()" class="back-link">&larr; Volver al Producto</a>
-        <h1>STATELESS 3D</h1>
-        <div class="sub-prenda">Outfit Completo Octane</div>
+    <aside class="panel-izq">
+        <a href="/" class="volver">&larr; Volver al catálogo</a>
 
-        <!-- Calibrador de Brazos Naturales -->
-        <div class="calib-box">
-            <div class="calib-title">🕺 Postura de Brazos (Catálogo)</div>
-            <div class="slider-row">
-                <label><span>Codos hacia Atrás / Adelante:</span> <span id="valCodoAtras">0.45</span></label>
-                <input type="range" id="codoAtrasSlider" min="-1.0" max="1.0" step="0.05" value="0.45">
-            </div>
-            <div class="slider-row">
-                <label><span>Abrir Codos (Lados):</span> <span id="valAbrir">-0.85</span></label>
-                <input type="range" id="abrirSlider" min="-1.5" max="0.0" step="0.05" value="-0.85">
-            </div>
-            <div class="slider-row">
-                <label><span>Doblar Codo a Cintura:</span> <span id="valDoblar">-1.10</span></label>
-                <input type="range" id="doblarSlider" min="-2.0" max="0.0" step="0.05" value="-1.10">
-            </div>
-            <div class="slider-row">
-                <label><span>Ancho Caderas:</span> <span id="valCadera">0.82</span></label>
-                <input type="range" id="caderaSlider" min="0.60" max="1.00" step="0.01" value="0.82">
+        <div class="prenda-actual">
+            <span class="badge" id="prenda-tipo">Prenda 3D</span>
+            <h1 id="prenda-titulo">Cargando...</h1>
+            <div class="prenda-meta" id="prenda-meta"></div>
+        </div>
+
+        <div>
+            <div class="seccion-titulo">Talla del Modelo</div>
+            <div class="tallas">
+                <button class="btn-talla" data-talla="S">S</button>
+                <button class="btn-talla activo" data-talla="M">M</button>
+                <button class="btn-talla" data-talla="L">L</button>
+                <button class="btn-talla" data-talla="XL">XL</button>
             </div>
         </div>
 
-        <!-- Calibrador Pantalón -->
-        <div class="calib-box">
-            <div class="calib-title">👖 Calibrador Pantalón</div>
-            <div class="slider-row">
-                <label><span>Subir / Bajar (Y):</span> <span id="valY">-0.050</span></label>
-                <input type="range" id="pY" min="-0.30" max="0.20" step="0.005" value="-0.050">
-            </div>
-            <div class="slider-row">
-                <label><span>Adelante / Atrás (Z):</span> <span id="valZ">0.030</span></label>
-                <input type="range" id="pZ" min="-0.10" max="0.10" step="0.005" value="0.030">
-            </div>
-            <div class="slider-row">
-                <label><span>Profundidad / Glúteos (Z):</span> <span id="valGrosorZ">1.25</span></label>
-                <input type="range" id="pGrosorZ" min="0.80" max="1.60" step="0.01" value="1.25">
-            </div>
-            <div class="slider-row">
-                <label><span>Largo (Eje Y):</span> <span id="valLargo">1.10</span></label>
-                <input type="range" id="pLargo" min="0.80" max="1.50" step="0.01" value="1.10">
-            </div>
-            <div class="slider-row">
-                <label><span>Ancho de Caderas (X):</span> <span id="valS">1.04</span></label>
-                <input type="range" id="pS" min="0.80" max="1.40" step="0.01" value="1.04">
-            </div>
+        <div>
+            <div class="seccion-titulo">Sugerencias para combinar</div>
+            <div class="sugerencias-lista" id="sugerencias-lista"></div>
         </div>
+    </aside>
 
-        <button id="btnToggleCamisa" class="btn-action">Ocultar Camisa</button>
-        <button id="btnTogglePantalon" class="btn-action">Ocultar Pantalón</button>
+    <button class="chat-toggle" id="btn-toggle-chat">&#10022; Estilista IA</button>
+
+    <div class="chat-box" id="chat-box">
+        <div class="chat-header">
+            <span>&#10022; Estilista STATELESS</span>
+            <button id="btn-cerrar-chat" style="background:none;border:none;color:#a1a1aa;cursor:pointer;font-size:1.1rem;">&times;</button>
+        </div>
+        <div class="chat-msgs" id="chat-msgs">
+            <div class="msg-ia">Hola, dime qué estilo buscas o sube una foto de una prenda para sugerirte combinaciones del catálogo.</div>
+        </div>
+        <form class="chat-form" id="chat-form">
+            <input type="file" id="chat-img" accept="image/*" style="display:none;">
+            <button type="button" id="btn-subir-img" title="Subir foto" style="background:#27272a;color:#fff;">&#128247;</button>
+            <input type="text" id="chat-input" placeholder="Ej: ¿Con qué combino esto?">
+            <button type="submit" id="chat-enviar">Enviar</button>
+        </form>
     </div>
 
-    <div id="cargando">CARGANDO MODELO 3D...</div>
-    <div id="canvas3d"></div>
+    {{ catalogo_3d|json_script:"catalogo-data" }}
 
-    <script>
-        let modeloManiqui = null;
-        let modeloCamisa = null;
-        let modeloPantalon = null;
-        let sizePBase = null;
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // Variables de Postura
-        let factorCaderaX = 0.82;
-        let factorCaderaZ = 0.85;
+        const catalogo = JSON.parse(document.getElementById('catalogo-data').textContent);
+        const todasLasPrendas = Object.values(catalogo);
+        const params = new URLSearchParams(window.location.search);
+        const paramPrenda = (params.get('prenda') || '').toLowerCase().trim();
 
-        // Nuevos ángulos corregidos (hombro normalizado, codo atrás)
-        let rotCodoAtras = 0.45;
-        let rotAbrir = -0.85;
-        let rotDoblar = -1.10;
+        // Buscar por slug exacto o por ID antes de hacer fallback
+        let prendaPrincipal = catalogo[paramPrenda]
+            || todasLasPrendas.find(p => String(p.id) === paramPrenda)
+            || todasLasPrendas[0];
 
-        // Medidas maestras de la camisa
-        const AJUSTE_CAMISA = {
-            posY: -0.180,
-            posZ: 0.015,
-            anchoHombros: 0.68,
-            grosorPecho: 1.15
-        };
+        const container = document.getElementById('canvas-container');
+        const estadoCarga = document.getElementById('estado-carga');
 
-        const clock = new THREE.Clock();
-        let mixer = null;
-
-        // 1. Escena, Cámara y Renderer
+        // Escena Three.js (Maniquí invisible en estudio oscuro)
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0e0e0e);
+        scene.background = new THREE.Color(0x0b0b0c);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 1.25, 3.2);
+        const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.15, 2.75);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.3;
         renderer.shadowMap.enabled = true;
-        document.getElementById('canvas3d').appendChild(renderer.domElement);
+        container.appendChild(renderer.domElement);
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 0.95, 0);
+        const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.minDistance = 1.0;
-        controls.maxDistance = 4.5;
+        controls.target.set(0, 0.92, 0);
 
-        // 2. Luces
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-        scene.add(ambientLight);
+        // Iluminación de estudio
+        scene.add(new THREE.AmbientLight(0xffffff, 1.3));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+        keyLight.position.set(2.5, 4, 3);
+        keyLight.castShadow = true;
+        scene.add(keyLight);
 
-        const luzFrontal = new THREE.DirectionalLight(0xffffff, 2.2);
-        luzFrontal.position.set(2, 4, 3);
-        scene.add(luzFrontal);
+        const rimLight = new THREE.DirectionalLight(0xd4d4d8, 1.0);
+        rimLight.position.set(-3, 2.5, -2.5);
+        scene.add(rimLight);
 
-        const luzTrasera = new THREE.DirectionalLight(0x8899aa, 1.4);
-        luzTrasera.position.set(-2, 3, -3);
-        scene.add(luzTrasera);
-
-        // Tarima / Podio
-        const podio = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.85, 0.9, 0.05, 48),
-            new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.8, metalness: 0.2 })
+        // Podio de estudio
+        const podium = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.75, 0.82, 0.08, 64),
+            new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.75, metalness: 0.15 })
         );
-        podio.position.y = -0.025;
-        scene.add(podio);
+        podium.position.y = -0.04;
+        podium.receiveShadow = true;
+        scene.add(podium);
 
-        // 3. Cargar Modelos
-        const loader = new THREE.GLTFLoader();
-        const urlManiqui = "{% static 'modelos/Xbot.glb' %}";
-        const urlCamisa = "{% static 'modelos/camisa-polo-fuenza_blanca.glb' %}";
-        const urlPantalon = "{% static 'modelos/pantalon.glb' %}";
+        const outfitGroup = new THREE.Group();
+        scene.add(outfitGroup);
 
-        // Cargar Maniquí Xbot
-        loader.load(urlManiqui, function(gltfManiqui) {
-            modeloManiqui = gltfManiqui.scene;
-            modeloManiqui.scale.set(0.98, 1, 0.92);
-            modeloManiqui.position.set(0, 0, 0);
+        const loader = new GLTFLoader();
+        const activasPorTipo = { superior: null, inferior: null };
+        const meshesPorTipo = { superior: null, inferior: null };
 
-            modeloManiqui.traverse((child) => {
-                if (child.isMesh) {
-                    child.material = new THREE.MeshStandardMaterial({
-                        color: 0x222222,
-                        roughness: 0.45,
-                        metalness: 0.1,
-                        skinning: true
-                    });
-                }
+        const ESCALAS_TALLA = { S: 0.94, M: 1.00, L: 1.06, XL: 1.12 };
+
+        function aplicarTalla(talla) {
+            const f = ESCALAS_TALLA[talla] || 1.00;
+            outfitGroup.scale.set(f, f, f);
+            document.querySelectorAll('.btn-talla').forEach(btn => {
+                btn.classList.toggle('activo', btn.dataset.talla === talla);
             });
-
-            if (gltfManiqui.animations && gltfManiqui.animations.length > 2) {
-                mixer = new THREE.AnimationMixer(modeloManiqui);
-                const idlePose = gltfManiqui.animations[2];
-                const action = mixer.clipAction(idlePose);
-                action.play();
-            }
-
-            scene.add(modeloManiqui);
-
-            // Cargar Camisa Polo
-            loader.load(urlCamisa, function(gltfCamisa) {
-                modeloCamisa = gltfCamisa.scene;
-                modeloCamisa.traverse((child) => {
-                    if (child.isMesh) {
-                        child.renderOrder = 10;
-                        if (child.material) {
-                            child.material.polygonOffset = true;
-                            child.material.polygonOffsetFactor = -5.0;
-                            child.material.polygonOffsetUnits = -5.0;
-                            child.material.depthTest = true;
-                        }
-                    }
-                });
-
-                const boxC = new THREE.Box3().setFromObject(modeloCamisa);
-                const sizeC = boxC.getSize(new THREE.Vector3());
-                const escalaX = (AJUSTE_CAMISA.anchoHombros / sizeC.x);
-
-                modeloCamisa.scale.set(escalaX, escalaX, escalaX * AJUSTE_CAMISA.grosorPecho);
-                modeloCamisa.position.set(0, AJUSTE_CAMISA.posY, AJUSTE_CAMISA.posZ);
-                scene.add(modeloCamisa);
-
-                // Cargar Pantalón
-                loader.load(urlPantalon, function(gltfPantalon) {
-                    modeloPantalon = gltfPantalon.scene;
-
-                    const boxP = new THREE.Box3().setFromObject(modeloPantalon);
-                    sizePBase = boxP.getSize(new THREE.Vector3());
-
-                    modeloPantalon.traverse((child) => {
-                        if (child.isMesh) {
-                            child.renderOrder = 2;
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0x141414,
-                                roughness: 0.85,
-                                metalness: 0.05,
-                                polygonOffset: true,
-                                polygonOffsetFactor: -2.0,
-                                polygonOffsetUnits: -2.0,
-                                depthTest: true
-                            });
-                        }
-                    });
-
-                    actualizarAjustePantalon();
-                    scene.add(modeloPantalon);
-
-                    const cargandoEl = document.getElementById('cargando');
-                    if (cargandoEl) cargandoEl.style.opacity = '0';
-                }, undefined, function(err) {
-                    console.error("Error al cargar pantalón:", err);
-                    const cargandoEl = document.getElementById('cargando');
-                    if (cargandoEl) cargandoEl.style.opacity = '0';
-                });
-            });
-        });
-
-        // Eventos de Postura de Brazos
-        document.getElementById('codoAtrasSlider').addEventListener('input', function(e) {
-            rotCodoAtras = parseFloat(e.target.value);
-            document.getElementById('valCodoAtras').textContent = rotCodoAtras.toFixed(2);
-        });
-
-        document.getElementById('abrirSlider').addEventListener('input', function(e) {
-            rotAbrir = parseFloat(e.target.value);
-            document.getElementById('valAbrir').textContent = rotAbrir.toFixed(2);
-        });
-
-        document.getElementById('doblarSlider').addEventListener('input', function(e) {
-            rotDoblar = parseFloat(e.target.value);
-            document.getElementById('valDoblar').textContent = rotDoblar.toFixed(2);
-        });
-
-        document.getElementById('caderaSlider').addEventListener('input', function(e) {
-            factorCaderaX = parseFloat(e.target.value);
-            factorCaderaZ = factorCaderaX * 1.03;
-            document.getElementById('valCadera').textContent = factorCaderaX.toFixed(2);
-        });
-
-        // Controles Pantalón
-        const pY = document.getElementById('pY');
-        const pZ = document.getElementById('pZ');
-        const pGrosorZ = document.getElementById('pGrosorZ');
-        const pLargo = document.getElementById('pLargo');
-        const pS = document.getElementById('pS');
-
-        function actualizarAjustePantalon() {
-            if (!modeloPantalon || !sizePBase) return;
-
-            const posY = parseFloat(pY.value);
-            const posZ = parseFloat(pZ.value);
-            const grosorZ = parseFloat(pGrosorZ.value);
-            const largoY = parseFloat(pLargo.value);
-            const anchoX = parseFloat(pS.value);
-
-            document.getElementById('valY').textContent = posY.toFixed(3);
-            document.getElementById('valZ').textContent = posZ.toFixed(3);
-            document.getElementById('valGrosorZ').textContent = grosorZ.toFixed(2);
-            document.getElementById('valLargo').textContent = largoY.toFixed(2);
-            document.getElementById('valS').textContent = anchoX.toFixed(2);
-
-            const baseScale = (1.02 / sizePBase.y);
-
-            modeloPantalon.scale.set(
-                baseScale * anchoX, 
-                baseScale * largoY, 
-                baseScale * anchoX * grosorZ
-            );
-
-            modeloPantalon.position.set(0.0, -0.050, 0.030); // (X, Y, Z)
         }
 
-        pY.addEventListener('input', actualizarAjustePantalon);
-        pZ.addEventListener('input', actualizarAjustePantalon);
-        pGrosorZ.addEventListener('input', actualizarAjustePantalon);
-        pLargo.addEventListener('input', actualizarAjustePantalon);
-        pS.addEventListener('input', actualizarAjustePantalon);
+        function quitarTipo(tipo) {
+            if (meshesPorTipo[tipo]) {
+                outfitGroup.remove(meshesPorTipo[tipo]);
+                meshesPorTipo[tipo] = null;
+            }
+            activasPorTipo[tipo] = null;
+            renderSugerencias();
+        }
 
-        // Botones Visibilidad Prendas
-        let verCamisa = true;
-        let verPantalon = true;
+        function cargarPrendaEnEscena(prenda) {
+            if (!prenda) return;
+            const tipo = prenda.tipo === 'inferior' ? 'inferior' : 'superior';
+            estadoCarga.style.display = 'block';
 
-        document.getElementById('btnToggleCamisa').addEventListener('click', function() {
-            verCamisa = !verCamisa;
-            if (modeloCamisa) modeloCamisa.visible = verCamisa;
-            this.textContent = verCamisa ? "Ocultar Camisa" : "Mostrar Camisa";
+            loader.load(
+                prenda.modelo,
+                (gltf) => {
+                    if (meshesPorTipo[tipo]) {
+                        outfitGroup.remove(meshesPorTipo[tipo]);
+                    }
+
+                    const model = gltf.scene;
+                    const nombreArchivo = (prenda.modelo_nombre || '').toLowerCase();
+                    let objetoFinal = model;
+
+                    if (nombreArchivo === 'camisa-polo-fuenza_blanca.glb') {
+                        model.position.set(0, -0.150, 0.015);
+                        model.scale.set(0.68, 1.00, 1.15);
+                    } else if (nombreArchivo === 'pantalon.glb') {
+                        model.position.set(0, -0.135, 0.085);
+                        model.scale.set(0.87, 1.00, 0.94);
+                        model.traverse((c) => {
+                            if (c.isMesh) {
+                                c.material = new THREE.MeshStandardMaterial({
+                                    color: 0x141414,
+                                    roughness: 0.85,
+                                    metalness: 0.05
+                                });
+                            }
+                        });
+                    } else {
+                        // Auto-alineación para cualquier .glb nuevo en static/modelos/
+                        const box = new THREE.Box3().setFromObject(model);
+                        const size = new THREE.Vector3();
+                        const center = new THREE.Vector3();
+                        box.getSize(size);
+                        box.getCenter(center);
+
+                        model.position.x -= center.x;
+                        model.position.z -= center.z;
+                        model.position.y -= box.min.y;
+
+                        const wrapper = new THREE.Group();
+                        wrapper.add(model);
+
+                        if (tipo === 'superior') {
+                            const escala = 0.72 / (size.y || 1);
+                            wrapper.scale.setScalar(escala);
+                            wrapper.position.y = 0.86;
+                        } else {
+                            const escala = 1.02 / (size.y || 1);
+                            wrapper.scale.setScalar(escala);
+                            wrapper.position.y = 0.02;
+                        }
+                        objetoFinal = wrapper;
+                    }
+
+                    outfitGroup.add(objetoFinal);
+                    meshesPorTipo[tipo] = objetoFinal;
+                    activasPorTipo[tipo] = prenda.slug;
+                    estadoCarga.style.display = 'none';
+                    renderSugerencias();
+                },
+                undefined,
+                (err) => {
+                    console.error('Error cargando GLB:', prenda.modelo, err);
+                    estadoCarga.textContent = 'No se encontró: ' + prenda.modelo_nombre;
+                }
+            );
+        }
+
+        function actualizarCabecera(prenda) {
+            if (!prenda) return;
+            document.getElementById('prenda-tipo').textContent =
+                prenda.tipo === 'inferior' ? 'Prenda Inferior' : 'Prenda Superior';
+            document.getElementById('prenda-titulo').textContent = prenda.nombre;
+            document.getElementById('prenda-meta').textContent =
+                `${prenda.color} · $${prenda.precio} COP`;
+        }
+
+        function renderSugerencias() {
+            const lista = document.getElementById('sugerencias-lista');
+            lista.innerHTML = '';
+            if (!prendaPrincipal) return;
+
+            // Mostrar primero prendas del tipo complementario, luego otras distintas
+            const complementarias = todasLasPrendas.filter(p => p.slug !== prendaPrincipal.slug && p.tipo !== prendaPrincipal.tipo);
+            const otras = todasLasPrendas.filter(p => p.slug !== prendaPrincipal.slug && p.tipo === prendaPrincipal.tipo);
+            const sugerencias = [...complementarias, ...otras];
+
+            if (sugerencias.length === 0) {
+                lista.innerHTML = '<div style="font-size:0.8rem;color:#71717a;">Agrega más prendas en el Admin para combinarlas aquí.</div>';
+                return;
+            }
+
+            sugerencias.forEach(p => {
+                const estaEquipada = activasPorTipo[p.tipo] === p.slug;
+                const card = document.createElement('div');
+                card.className = 'sug-card' + (estaEquipada ? ' equipada' : '');
+                card.innerHTML = `
+                    <div class="sug-info">
+                        <h4>${p.nombre}</h4>
+                        <span>${p.color} · $${p.precio}</span>
+                    </div>
+                    <button class="btn-combinar">${estaEquipada ? '&#10003; Quitar' : '+ Probar'}</button>
+                `;
+                card.querySelector('button').addEventListener('click', () => {
+                    if (estaEquipada) {
+                        quitarTipo(p.tipo);
+                    } else {
+                        cargarPrendaEnEscena(p);
+                    }
+                });
+                lista.appendChild(card);
+            });
+        }
+
+        // Inicializar prenda elegida desde el catálogo
+        if (prendaPrincipal) {
+            actualizarCabecera(prendaPrincipal);
+            cargarPrendaEnEscena(prendaPrincipal);
+        }
+
+        // Talla inicial según altura si viene en URL
+        const alturaUrl = parseInt(params.get('altura') || '0', 10);
+        if (alturaUrl > 0) {
+            if (alturaUrl < 168) aplicarTalla('S');
+            else if (alturaUrl <= 178) aplicarTalla('M');
+            else if (alturaUrl <= 186) aplicarTalla('L');
+            else aplicarTalla('XL');
+        }
+
+        document.querySelectorAll('.btn-talla').forEach(btn => {
+            btn.addEventListener('click', () => aplicarTalla(btn.dataset.talla));
         });
 
-        document.getElementById('btnTogglePantalon').addEventListener('click', function() {
-            verPantalon = !verPantalon;
-            if (modeloPantalon) modeloPantalon.visible = verPantalon;
-            this.textContent = verPantalon ? "Ocultar Pantalón" : "Mostrar Pantalón";
+        // Estilista IA
+        const chatBox = document.getElementById('chat-box');
+        const chatMsgs = document.getElementById('chat-msgs');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatImg = document.getElementById('chat-img');
+        const btnEnviar = document.getElementById('chat-enviar');
+        let enviando = false;
+
+        document.getElementById('btn-toggle-chat').onclick = () => chatBox.classList.toggle('abierto');
+        document.getElementById('btn-cerrar-chat').onclick = () => chatBox.classList.remove('abierto');
+        document.getElementById('btn-subir-img').onclick = () => chatImg.click();
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (enviando) return;
+            const texto = chatInput.value.trim();
+            const archivo = chatImg.files[0];
+            if (!texto && !archivo) return;
+
+            enviando = true;
+            btnEnviar.disabled = true;
+            chatInput.disabled = true;
+
+            const userDiv = document.createElement('div');
+            userDiv.className = 'msg-user';
+            userDiv.textContent = texto || '[Foto enviada]';
+            chatMsgs.appendChild(userDiv);
+            chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+            const formData = new FormData();
+            formData.append('mensaje', texto);
+            if (archivo) formData.append('imagen', archivo);
+
+            chatInput.value = '';
+            chatImg.value = '';
+
+            try {
+                const res = await fetch('/api/stylist/', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                const iaDiv = document.createElement('div');
+                iaDiv.className = 'msg-ia';
+                iaDiv.innerHTML = `<div>${data.analisis || data.error || 'Sin respuesta.'}</div>`;
+
+                if (Array.isArray(data.opciones)) {
+                    data.opciones.forEach(op => {
+                        const card = document.createElement('div');
+                        card.className = 'ia-opcion';
+                        card.innerHTML = `
+                            <strong>${op.titulo}</strong>
+                            <div style="font-size:0.78rem;color:#a1a1aa;margin-top:2px;">${op.descripcion || ''}</div>
+                        `;
+                        const prendaSug = catalogo[op.slug];
+                        if (prendaSug) {
+                            const btnProbar = document.createElement('button');
+                            btnProbar.type = 'button';
+                            btnProbar.textContent = '👉 Probar en Modelo 3D';
+                            btnProbar.onclick = () => cargarPrendaEnEscena(prendaSug);
+                            card.appendChild(btnProbar);
+                        }
+                        iaDiv.appendChild(card);
+                    });
+                }
+
+                chatMsgs.appendChild(iaDiv);
+                chatMsgs.scrollTop = chatMsgs.scrollHeight;
+            } catch (err) {
+                const errDiv = document.createElement('div');
+                errDiv.className = 'msg-ia';
+                errDiv.textContent = 'Error al conectar con el estilista.';
+                chatMsgs.appendChild(errDiv);
+            } finally {
+                enviando = false;
+                btnEnviar.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
         });
 
-        window.addEventListener('resize', onWindowResize);
-        function onWindowResize() {
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        });
 
-        // Bucle Render: POSE NATURAL CON CODOS HACIA ATRÁS Y MANOS AL FRENTE
-        function animar() {
-            requestAnimationFrame(animar);
-            const delta = clock.getDelta();
-            if (mixer) mixer.update(delta);
-
-            if (modeloManiqui) {
-                // 1. Reducción de Cadera
-                const cadera = modeloManiqui.getObjectByName('mixamorigHips');
-                const espina = modeloManiqui.getObjectByName('mixamorigSpine');
-                if (cadera) {
-                    cadera.scale.x = factorCaderaX;
-                    cadera.scale.z = factorCaderaZ;
-                }
-                if (espina) {
-                    espina.scale.x = 1.0 / factorCaderaX;
-                    espina.scale.z = 1.0 / factorCaderaZ;
-                }
-
-                // 2. POSE CATÁLOGO: CODO DOBLADO A 90° NATURAL
-                const leftArm = modeloManiqui.getObjectByName('mixamorigLeftArm');
-                const leftForeArm = modeloManiqui.getObjectByName('mixamorigLeftForeArm');
-                const rightArm = modeloManiqui.getObjectByName('mixamorigRightArm');
-                const rightForeArm = modeloManiqui.getObjectByName('mixamorigRightForeArm');
-
-                if (leftArm && leftForeArm && rightArm && rightForeArm) {
-                    // BRAZO IZQUIERDO:
-                    // 1. El hombro casi neutro, apenas un toque hacia atrás
-                    leftArm.rotation.x = 0.05; 
-                    leftArm.rotation.y = -0.25; 
-                    leftArm.rotation.z = -0.95; // Codo abierto al lado
-
-                    // 2. EL SECRETO: El codo doblado a 90 grados (en L) hacia el frente
-                    leftForeArm.rotation.x = 0.0;
-                    leftForeArm.rotation.y = 0.35;
-                    leftForeArm.rotation.z = -1.55; // 90° de doblez
-
-                    // BRAZO DERECHO (Espejo simétrico perfecto):
-                    rightArm.rotation.x = 0.05;
-                    rightArm.rotation.y = 0.25;
-                    rightArm.rotation.z = 0.95;
-
-                    rightForeArm.rotation.x = 0.0;
-                    rightForeArm.rotation.y = -0.35;
-                    rightForeArm.rotation.z = 1.55;
-                }
-            }
-
+        function animate() {
+            requestAnimationFrame(animate);
             controls.update();
             renderer.render(scene, camera);
         }
-        animar();
+        animate();
     </script>
 </body>
 </html>

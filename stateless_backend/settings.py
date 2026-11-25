@@ -1,3 +1,5 @@
+
+
 """
 Django settings for stateless_backend project.
 
@@ -9,6 +11,9 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from pathlib import Path
 
@@ -138,6 +143,4 @@ MEDIA_ROOT = BASE_DIR / 'media'
 CORS_ALLOW_ALL_ORIGINS = True
 
 import os
-
-# Configuración de Google GenAI / Gemini usando variables de entorno
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "tu_clave_por_defecto_si_quieres")
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")

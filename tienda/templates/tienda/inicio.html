@@ -2,32 +2,61 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>STATELESS - Inicio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STATELESS - Catálogo</title>
+    <style>
+        body {
+            background-color: #0b0b0b;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 24px;
+            max-width: 1000px;
+            margin-inline: auto;
+        }
+        h1 { font-size: 2rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; }
+        .sub { color: #888; font-size: 0.95rem; margin-bottom: 24px; }
+        hr { border: none; border-top: 1px solid #222; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+        .card {
+            background: #141414;
+            border: 1px solid #262626;
+            border-radius: 12px;
+            padding: 22px;
+            transition: border-color 0.2s;
+        }
+        .card:hover { border-color: #555; }
+        .card h3 { font-size: 1.15rem; margin: 0 0 12px 0; text-transform: capitalize; }
+        .meta { font-size: 0.88rem; color: #aaa; margin-bottom: 6px; }
+        .meta strong { color: #fff; }
+        .link {
+            display: inline-block;
+            margin-top: 14px;
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .link:hover { text-decoration: underline; }
+    </style>
 </head>
-<body style="background-color: #0b0b0b; color: #ffffff; font-family: sans-serif; padding: 20px;">
-
+<body>
     <h1>STATELESS</h1>
-    <p>Catálogo de Ropa</p>
-    <hr style="border-color: #333;">
-
-    <h2>Prendas Disponibles:</h2>
-
-    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+    <div class="sub">Catálogo de Ropa</div>
+    <hr>
+    <h2 style="font-size: 1.1rem; margin-bottom: 20px;">Prendas Disponibles:</h2>
+    <div class="grid">
         {% for prenda in prendas %}
-            <div style="border: 1px solid #333; padding: 15px; width: 220px; background: #141414; border-radius: 8px;">
-                <h3>{{ prenda.nombre }}</h3>
-                <p>Categoría: <strong>{{ prenda.categoria.nombre }}</strong></p>
-                <p>Precio: <strong>${{ prenda.precio }} COP</strong></p>
-                <p>Color: {{ prenda.color_nombre }}</p>
-                
-                <a href="{% url 'detalle_prenda' prenda.slug %}" style="color: #61afef; text-decoration: none; font-weight: bold;">
-                    Ver Producto &rarr;
-                </a>
-            </div>
+        <div class="card">
+            <h3>{{ prenda.nombre }}</h3>
+            <div class="meta">Categoría: <strong>{{ prenda.categoria.nombre }}</strong></div>
+            <div class="meta">Precio: <strong>${{ prenda.precio }} COP</strong></div>
+            <div class="meta">Color: {{ prenda.color }}</div>
+            <a href="{% url 'detalle_prenda' prenda.id %}" class="link">Ver Producto &rarr;</a>
+        </div>
         {% empty %}
-            <p>No hay prendas registradas aún. Agrégalas desde el admin.</p>
+        <p style="color:#777;">No hay prendas creadas todavía. Entra a <code>/admin</code> para agregarlas.</p>
         {% endfor %}
     </div>
-
 </body>
 </html>

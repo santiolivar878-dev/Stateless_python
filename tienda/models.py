@@ -1,60 +1,41 @@
 from django.db import models
 
 class Categoria(models.Model):
-    nombre = models.CharField(max_length=50, unique=True)
-    slug = models.SlugField(max_length=50, unique=True)
-
-    class Meta:
-        verbose_name_plural = "Categorías"
+    nombre = models.CharField(max_length=100)
 
     def __str__(self):
         return self.nombre
 
 
 class Prenda(models.Model):
-    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='prendas')
-    nombre = models.CharField(max_length=150)
-    slug = models.SlugField(max_length=150, unique=True)
-    descripcion = models.TextField(blank=True, default="")
-    precio = models.DecimalField(max_digits=10, decimal_places=0)
-    
-    imagen = models.ImageField(upload_to='prendas/', blank=True, null=True)
-    
-    color_nombre = models.CharField(max_length=50, default="Negro")
-    color_hex = models.CharField(max_length=7, default="#000000")
+    TIPO_CHOICES = [
+        ('superior', 'Parte Superior (Camisa / Hoodie / Chaqueta)'),
+        ('inferior', 'Parte Inferior (Pantalón / Cargo / Short)'),
+    ]
 
-    archivo_3d = models.CharField(
-        max_length=100, 
-        blank=True, 
-        default="camisa.glb", 
-        help_text="Ejemplo: camisa.glb o pantalon.glb"
+    nombre = models.CharField(max_length=150)
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='prendas')
+    precio = models.DecimalField(max_digits=10, decimal_places=0)
+    color = models.CharField(max_length=50, default="Negro")
+    descripcion = models.TextField(blank=True, default="Prenda streetwear de diseño minimalista STATELESS.")
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='superior')
+    modelo_3d = models.CharField(
+        max_length=200,
+        default="camisa-polo-fuenza_blanca.glb",
+        help_text="Nombre exacto del archivo .glb dentro de static/modelos/"
     )
 
-    activo = models.BooleanField(default=True)
-    creado = models.DateTimeField(auto_now_add=True)
-
     def __str__(self):
-        return f"{self.nombre} - ${self.precio}"
-
-    activo = models.BooleanField(default=True)
-    creado = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.nombre} - ${self.precio}"
+        return self.nombre
 
 
 class GuiaTalla(models.Model):
     TALLAS = [('S', 'S'), ('M', 'M'), ('L', 'L'), ('XL', 'XL')]
-
     prenda = models.ForeignKey(Prenda, on_delete=models.CASCADE, related_name='guias_talla')
     talla = models.CharField(max_length=5, choices=TALLAS)
-    
-    altura_min = models.PositiveIntegerField(help_text="Altura mínima recomendada en cm")
-    altura_max = models.PositiveIntegerField(help_text="Altura máxima recomendada en cm")
-
-    class Meta:
-        unique_together = ('prenda', 'talla')
+    altura_min_cm = models.IntegerField(default=165)
+    altura_max_cm = models.IntegerField(default=180)
+    pecho_cm = models.IntegerField(default=100)
 
     def __str__(self):
-        return f"{self.prenda.nombre} - Talla {self.talla} ({self.altura_min}-{self.altura_max} cm)"
-
+        return f"{self.prenda.nombre} - Talla {self.talla}"
