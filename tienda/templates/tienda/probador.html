@@ -222,6 +222,64 @@
             font-weight: 600;
             cursor: pointer;
         }
+
+        .btn-estilo {
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    color: #f4f4f5;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: left;
+}
+.btn-estilo:hover { border-color: #fff; }
+
+.msg-cargando {
+    color: #a1a1aa;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.spinner-ia {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #3f3f46;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spinIA 0.7s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes spinIA {
+    to { transform: rotate(360deg); }
+}
+
+.quiz-modal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0, 0, 0, 0.78);
+    display: none; align-items: center; justify-content: center;
+}
+.quiz-modal.abierto { display: flex; }
+.quiz-card {
+    width: 400px; max-width: 92vw;
+    background: #121214; border: 1px solid #27272a;
+    border-radius: 14px; padding: 22px;
+    display: flex; flex-direction: column; gap: 12px;
+}
+.quiz-card select {
+    width: 100%; background: #18181b; color: #fff;
+    border: 1px solid #3f3f46; padding: 8px; border-radius: 8px; margin-top: 4px;
+}
+.preview-bar {
+    display: none; align-items: center; gap: 8px;
+    padding: 8px 10px; background: #18181b; border-top: 1px solid #27272a;
+    font-size: 0.75rem; color: #a1a1aa;
+}
+.preview-bar img { width: 38px; height: 38px; object-fit: cover; border-radius: 6px; }
+.ia-opcion-flex { display: flex; gap: 10px; align-items: center; }
+.ia-opcion-img { width: 54px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid #3f3f46; }
     </style>
 
     <script type="importmap">
@@ -244,7 +302,12 @@
             <span class="badge" id="prenda-tipo">Prenda 3D</span>
             <h1 id="prenda-titulo">Cargando...</h1>
             <div class="prenda-meta" id="prenda-meta"></div>
+            <!-- Botón dentro de .panel-izq -->
+            <button class="btn-estilo" id="btn-abrir-quiz">&#10022; Configurar mi Estilo (Quiz IA)</button>
+            <div id="resumen-estilo" style="font-size:0.75rem; color:#a1a1aa;"></div>
         </div>
+
+
 
         <div>
             <div class="seccion-titulo">Talla del Modelo</div>
@@ -272,14 +335,63 @@
         <div class="chat-msgs" id="chat-msgs">
             <div class="msg-ia">Hola, dime qué estilo buscas o sube una foto de una prenda para sugerirte combinaciones del catálogo.</div>
         </div>
+                <!-- Barra de vista previa dentro de .chat-box, justo encima de <form class="chat-form"> -->
+<div class="preview-bar" id="chat-preview-bar">
+    <img id="chat-preview-img" src="" alt="Vista previa">
+    <span style="flex:1;">Foto lista para analizar</span>
+    <button type="button" id="btn-quitar-img" style="background:none;border:none;color:#fff;cursor:pointer;">&times;</button>
+</div>
         <form class="chat-form" id="chat-form">
+            {% csrf_token %}
             <input type="file" id="chat-img" accept="image/*" style="display:none;">
             <button type="button" id="btn-subir-img" title="Subir foto" style="background:#27272a;color:#fff;">&#128247;</button>
             <input type="text" id="chat-input" placeholder="Ej: ¿Con qué combino esto?">
             <button type="submit" id="chat-enviar">Enviar</button>
         </form>
     </div>
-
+<!-- Modal del Quiz antes de {{ catalogo_3d|json_script:"catalogo-data" }} -->
+<div class="quiz-modal" id="quiz-modal">
+    <div class="quiz-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong>&#10022; Tu Perfil de Estilo STATELESS</strong>
+            <button type="button" id="btn-cerrar-quiz" style="background:none;border:none;color:#a1a1aa;cursor:pointer;font-size:1.2rem;">&times;</button>
+        </div>
+        <label style="font-size:0.8rem;">1. Vibra principal
+            <select id="q-vibra">
+                <option>Streetwear Oversize</option>
+                <option>Minimalista Oscuro</option>
+                <option>Urbano Casual</option>
+                <option>Elegante Nocturno</option>
+            </select>
+        </label>
+        <label style="font-size:0.8rem;">2. Fit favorito
+            <select id="q-fit">
+                <option>Oversize</option>
+                <option>Regular</option>
+                <option>Ajustado (Slim)</option>
+            </select>
+        </label>
+        <label style="font-size:0.8rem;">3. Paleta de colores
+            <select id="q-paleta">
+                <option>Monocromático (Negro / Blanco / Gris)</option>
+                <option>Tonos Tierra (Beige / Café / Oliva)</option>
+                <option>Alto Contraste</option>
+            </select>
+        </label>
+        <label style="font-size:0.8rem;">4. Ocasión principal
+            <select id="q-ocasion">
+                <option>Uso diario</option>
+                <option>Salir de noche</option>
+                <option>Trabajo creativo</option>
+                <option>Fin de semana</option>
+            </select>
+        </label>
+        <button type="button" id="btn-guardar-quiz" style="background:#fff;color:#000;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">
+            Guardar y personalizar IA
+        </button>
+    </div>
+</div>
+{{ perfil_estilo|json_script:"perfil-estilo-data" }}
     {{ catalogo_3d|json_script:"catalogo-data" }}
 
     <script type="module">
@@ -500,85 +612,191 @@
             btn.addEventListener('click', () => aplicarTalla(btn.dataset.talla));
         });
 
-        // Estilista IA
-        const chatBox = document.getElementById('chat-box');
-        const chatMsgs = document.getElementById('chat-msgs');
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
-        const chatImg = document.getElementById('chat-img');
-        const btnEnviar = document.getElementById('chat-enviar');
-        let enviando = false;
+        // Perfil de estilo (Quiz) + Estilista IA con imágenes
+     const perfilGuardado = JSON.parse(document.getElementById('perfil-estilo-data').textContent || '{}');
+     const quizModal = document.getElementById('quiz-modal');
+     const resumenEstilo = document.getElementById('resumen-estilo');
 
-        document.getElementById('btn-toggle-chat').onclick = () => chatBox.classList.toggle('abierto');
-        document.getElementById('btn-cerrar-chat').onclick = () => chatBox.classList.remove('abierto');
-        document.getElementById('btn-subir-img').onclick = () => chatImg.click();
+     function pintarResumenEstilo(p) {
+         if (p && p.vibra) {
+             resumenEstilo.textContent = `Estilo activo: ${p.vibra} · ${p.fit}`;
+         } else {
+             resumenEstilo.textContent = 'Sin perfil aún (la IA usará recomendaciones generales)';
+         }
+     }
+     pintarResumenEstilo(perfilGuardado);
 
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (enviando) return;
-            const texto = chatInput.value.trim();
-            const archivo = chatImg.files[0];
-            if (!texto && !archivo) return;
+     document.getElementById('btn-abrir-quiz').onclick = () => quizModal.classList.add('abierto');
+     document.getElementById('btn-cerrar-quiz').onclick = () => quizModal.classList.remove('abierto');
 
-            enviando = true;
-            btnEnviar.disabled = true;
-            chatInput.disabled = true;
+     document.getElementById('btn-guardar-quiz').onclick = async () => {
+         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+         const payload = {
+             vibra: document.getElementById('q-vibra').value,
+             fit: document.getElementById('q-fit').value,
+             paleta: document.getElementById('q-paleta').value,
+             ocasion: document.getElementById('q-ocasion').value,
+         };
+         const res = await fetch('/api/perfil-estilo/', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+             body: JSON.stringify(payload)
+         });
+         const data = await res.json();
+         if (data.ok) {
+             pintarResumenEstilo(data.perfil);
+             quizModal.classList.remove('abierto');
+         }
+     };
 
-            const userDiv = document.createElement('div');
-            userDiv.className = 'msg-user';
-            userDiv.textContent = texto || '[Foto enviada]';
-            chatMsgs.appendChild(userDiv);
-            chatMsgs.scrollTop = chatMsgs.scrollHeight;
+     const chatBox = document.getElementById('chat-box');
+     const chatMsgs = document.getElementById('chat-msgs');
+     const chatForm = document.getElementById('chat-form');
+     const chatInput = document.getElementById('chat-input');
+     const chatImg = document.getElementById('chat-img');
+     const btnEnviar = document.getElementById('chat-enviar');
+     const previewBar = document.getElementById('chat-preview-bar');
+     const previewImg = document.getElementById('chat-preview-img');
+     let enviando = false;
 
-            const formData = new FormData();
-            formData.append('mensaje', texto);
-            if (archivo) formData.append('imagen', archivo);
+     document.getElementById('btn-toggle-chat').onclick = () => chatBox.classList.toggle('abierto');
+     document.getElementById('btn-cerrar-chat').onclick = () => chatBox.classList.remove('abierto');
+     document.getElementById('btn-subir-img').onclick = () => chatImg.click();
 
-            chatInput.value = '';
-            chatImg.value = '';
+     chatImg.addEventListener('change', () => {
+         const file = chatImg.files[0];
+         if (file) {
+             previewImg.src = URL.createObjectURL(file);
+             previewBar.style.display = 'flex';
+         }
+     });
 
-            try {
-                const res = await fetch('/api/stylist/', { method: 'POST', body: formData });
-                const data = await res.json();
+     document.getElementById('btn-quitar-img').onclick = () => {
+         chatImg.value = '';
+         previewBar.style.display = 'none';
+     };
 
-                const iaDiv = document.createElement('div');
-                iaDiv.className = 'msg-ia';
-                iaDiv.innerHTML = `<div>${data.analisis || data.error || 'Sin respuesta.'}</div>`;
+     chatForm.addEventListener('submit', async (e) => {
+         e.preventDefault();
+         if (enviando) return;
+         const texto = chatInput.value.trim();
+         const archivo = chatImg.files[0];
+         if (!texto && !archivo) return;
 
-                if (Array.isArray(data.opciones)) {
-                    data.opciones.forEach(op => {
-                        const card = document.createElement('div');
-                        card.className = 'ia-opcion';
-                        card.innerHTML = `
-                            <strong>${op.titulo}</strong>
-                            <div style="font-size:0.78rem;color:#a1a1aa;margin-top:2px;">${op.descripcion || ''}</div>
-                        `;
-                        const prendaSug = catalogo[op.slug];
-                        if (prendaSug) {
-                            const btnProbar = document.createElement('button');
-                            btnProbar.type = 'button';
-                            btnProbar.textContent = '👉 Probar en Modelo 3D';
-                            btnProbar.onclick = () => cargarPrendaEnEscena(prendaSug);
-                            card.appendChild(btnProbar);
-                        }
-                        iaDiv.appendChild(card);
-                    });
-                }
+         enviando = true;
+         btnEnviar.disabled = true;
+         chatInput.disabled = true;
 
-                chatMsgs.appendChild(iaDiv);
-                chatMsgs.scrollTop = chatMsgs.scrollHeight;
-            } catch (err) {
-                const errDiv = document.createElement('div');
-                errDiv.className = 'msg-ia';
-                errDiv.textContent = 'Error al conectar con el estilista.';
-                chatMsgs.appendChild(errDiv);
-            } finally {
-                enviando = false;
-                btnEnviar.disabled = false;
-                chatInput.disabled = false;
-                chatInput.focus();
-            }
-        });
+         const userDiv = document.createElement('div');
+         userDiv.className = 'msg-user';
+         if (archivo) {
+             const imgBubble = document.createElement('img');
+             imgBubble.src = URL.createObjectURL(archivo);
+             imgBubble.style.cssText = 'display:block;max-width:140px;border-radius:8px;margin-bottom:6px;';
+             userDiv.appendChild(imgBubble);
+         }
+         const txtSpan = document.createElement('span');
+         txtSpan.textContent = texto || '¿Qué del catálogo combina con esta foto?';
+         userDiv.appendChild(txtSpan);
+         chatMsgs.appendChild(userDiv);
+         chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+         const formData = new FormData();
+         formData.append('mensaje', texto);
+         if (archivo) formData.append('imagen', archivo);
+
+         chatInput.value = '';
+         chatImg.value = '';
+         previewBar.style.display = 'none';
+
+         const cargandoDiv = document.createElement('div');btnEnviar.textContent = '...';
+         const loadingDiv = document.createElement('div');
+         loadingDiv.className = 'msg-cargando msg-ia';
+         loadingDiv.innerHTML = `<span class="spinner-ia"></span><span>${archivo ? 'Analizando foto y catálogo...' : 'Pensando respuesta...'}</span>`;
+         chatMsgs.appendChild(loadingDiv);
+         chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+         try {
+             const res = await fetch('/api/stylist/', {
+                 method: 'POST',
+                 headers: { 'X-CSRFToken': csrfToken },
+                 body: formData
+             });
+             const data = await res.json();
+             loadingDiv.remove();
+             // ... el resto de tu código que pinta iaDiv ...
+         } catch (err) {
+             loadingDiv.remove();
+             const errDiv = document.createElement('div');
+             errDiv.className = 'msg-ia';
+             errDiv.textContent = 'Error al conectar con el estilista.';
+             chatMsgs.appendChild(errDiv);
+         } finally {
+             enviando = false;
+             btnEnviar.disabled = false;
+             btnEnviar.textContent = 'Enviar';
+             chatInput.disabled = false;
+             chatInput.focus();
+         }
+
+         try {
+             const res = await fetch('/api/stylist/', {
+                 method: 'POST',
+                 headers: { 'X-CSRFToken': csrfToken },
+                 body: formData
+             });
+             const data = await res.json();
+
+             const iaDiv = document.createElement('div');
+             iaDiv.className = 'msg-ia';
+             const analisisDiv = document.createElement('div');
+             analisisDiv.textContent = data.analisis || data.error || 'Sin respuesta.';
+             iaDiv.appendChild(analisisDiv);
+
+             if (Array.isArray(data.opciones)) {
+                 data.opciones.forEach(op => {
+                     const card = document.createElement('div');
+                     card.className = 'ia-opcion';
+                     const prendaSug = catalogo[op.slug];
+                     const imgUrl = op.imagen || (prendaSug && prendaSug.imagen) || '';
+
+                     card.innerHTML = `
+                         <div class="ia-opcion-flex">
+                             ${imgUrl ? `<img class="ia-opcion-img" src="${imgUrl}" alt="${op.titulo}">` : ''}
+                             <div>
+                                 <strong>${op.titulo}</strong>
+                                 ${op.precio ? `<div style="font-size:0.74rem;color:#d4d4d8;">$${op.precio} COP</div>` : ''}
+                                 <div style="font-size:0.78rem;color:#a1a1aa;margin-top:2px;">${op.descripcion || ''}</div>
+                             </div>
+                         </div>
+                     `;
+                     if (prendaSug) {
+                         const btnProbar = document.createElement('button');
+                         btnProbar.type = 'button';
+                         btnProbar.textContent = '👉 Probar en Modelo 3D';
+                         btnProbar.onclick = () => cargarPrendaEnEscena(prendaSug);
+                         card.appendChild(btnProbar);
+                     }
+                     iaDiv.appendChild(card);
+                 });
+             }
+
+             chatMsgs.appendChild(iaDiv);
+             chatMsgs.scrollTop = chatMsgs.scrollHeight;
+         } catch (err) {
+             const errDiv = document.createElement('div');
+             errDiv.className = 'msg-ia';
+             errDiv.textContent = 'Error al conectar con el estilista.';
+             chatMsgs.appendChild(errDiv);
+         } finally {
+             enviando = false;
+             btnEnviar.disabled = false;
+             chatInput.disabled = false;
+             chatInput.focus();
+         }
+     });
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;

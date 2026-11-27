@@ -9,6 +9,16 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
+from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
+
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-stateless-dev-local')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -138,5 +148,7 @@ STATICFILES_DIRS = [
 ]
 
 import os
+from dotenv import load_dotenv
 
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+load_dotenv()
+GEMINI_API_KEY = os.getenv('apykey', '')  # Asegúrate de que la variable de entorno esté definida en tu archivo .env    

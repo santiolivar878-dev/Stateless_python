@@ -143,4 +143,4 @@ MEDIA_ROOT = BASE_DIR / 'media'
 CORS_ALLOW_ALL_ORIGINS = True
 
 import os
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+os.getenv('GEMINI_API_KEY', '')

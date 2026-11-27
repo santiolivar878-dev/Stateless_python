@@ -56,20 +56,22 @@ def probador_3d_view(request):
             archivo += '.glb'
 
         catalogo_3d[slug] = {
-            'id': p.id,
-            'nombre': p.nombre,
-            'slug': slug,
-            'tipo': p.tipo,
-            'precio': str(p.precio),
-            'color': p.color,
-            'modelo': f"/static/modelos/{archivo}",
-            'modelo_nombre': archivo,
-        }
+        'id': p.id,
+        'nombre': p.nombre,
+        'slug': slug,
+        'tipo': p.tipo,
+        'precio': str(p.precio),
+        'color': p.color,
+        'imagen': p.imagen.url if getattr(p, 'imagen', None) and p.imagen.name else '',
+        'modelo': f"/static/modelos/{archivo}",
+        'modelo_nombre': archivo,
+    }
 
     return render(request, 'tienda/probador.html', {
-        'catalogo_3d': catalogo_3d,
-        'prendas': prendas,
-    })
+    'catalogo_3d': catalogo_3d,
+    'prendas': prendas,
+    'perfil_estilo': request.session.get('perfil_estilo', {}),
+})
 
 
 def stylist_chat_api(request):
@@ -97,8 +99,28 @@ def stylist_chat_api(request):
         return JsonResponse({'error': 'Escribe un mensaje o sube una foto.'}, status=400)
 
     respuesta = consultar_estilista(
-        mensaje_usuario=mensaje or 'Recomiéndame cómo combinar esta prenda del catálogo.',
+        mensaje_usuario=mensaje or 'Analiza esta imagen y dime qué prendas del catálogo combinan mejor.',
         imagen_bytes=imagen_bytes,
         mime_type=mime_type,
+        perfil_estilo=request.session.get('perfil_estilo'),
     )
     return JsonResponse(respuesta)
+
+
+def guardar_perfil_estilo_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    perfil = {
+        'vibra': data.get('vibra', 'Streetwear Oversize'),
+        'fit': data.get('fit', 'Oversize'),
+        'paleta': data.get('paleta', 'Monocromático'),
+        'ocasion': data.get('ocasion', 'Diario'),
+    }
+    request.session['perfil_estilo'] = perfil
+    request.session.modified = True
+    return JsonResponse({'ok': True, 'perfil': perfil})

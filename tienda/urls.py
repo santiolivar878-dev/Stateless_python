@@ -7,4 +7,5 @@ urlpatterns = [
     path('api/verificar-talla/', views.verificar_talla_api, name='verificar_talla_api'),
     path('probador-3d/', views.probador_3d_view, name='probador_3d'),
     path('api/stylist/', views.stylist_chat_api, name='stylist_chat_api'),
+    path('api/perfil-estilo/', views.guardar_perfil_estilo_api, name='guardar_perfil_estilo'),
 ]
